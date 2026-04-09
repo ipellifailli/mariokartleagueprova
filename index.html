@@ -330,6 +330,9 @@ th:nth-child(2){text-align:left;}
       <option value="winpct">% Vittorie</option>
       <option value="avgpos">Pos. Media</option>
       <option value="gare">Gare Totali</option>
+      <option value="var">Variazione</option>
+      <option value="bestelo">Best ELO</option>
+      <option value="bestrank">Best Rank</option>
     </select>
     <label>Min. gare:</label>
     <select id="ming-sel" onchange="renderClass()">
@@ -353,12 +356,15 @@ th:nth-child(2){text-align:left;}
       <th id="th-winpct" onclick="thSort('winpct')">% Vit.</th>
       <th id="th-avgpos" onclick="thSort('avgpos')">Pos. Media</th>
       <th id="th-rk" onclick="thSort('rk')" class="sd">ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('elo')" title="Info ELO">?</button></th>
-      <th>Var.</th>
-      <th><span id="belo-header-wrap" style="display:inline-flex;align-items:center;gap:.3rem">
-        Best ELO <button class="info-btn" onclick="showInfo('bestelo')" title="Info Best ELO">?</button>
-        <button class="belo-opt active" id="belo-uff-btn" onclick="setBeloMode('uff')">Uff.</button>
-        <button class="belo-opt" id="belo-all-btn" onclick="setBeloMode('all')">Non uff.</button>
-      </span></th>
+      <th id="th-var" onclick="thSort('var')">Var. <button class="info-btn" onclick="event.stopPropagation();showInfo('var')" title="Info Variazione">?</button></th>
+      <th id="th-bestelo" onclick="thSort('bestelo')" style="white-space:normal;min-width:4.5rem"><div style="display:flex;flex-direction:column;align-items:center;gap:.18rem">
+        <span style="white-space:nowrap;display:inline-flex;align-items:center;gap:.22rem">Best ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('bestelo')" title="Info Best ELO">?</button></span>
+        <span style="display:inline-flex;gap:.22rem" onclick="event.stopPropagation()">
+          <button class="belo-opt active" id="belo-uff-btn" onclick="setBeloMode('uff')">Uff.</button>
+          <button class="belo-opt" id="belo-all-btn" onclick="setBeloMode('all')">Non uff.</button>
+        </span>
+      </div></th>
+      <th id="th-bestrank" onclick="thSort('bestrank')">Best Rank <button class="info-btn" onclick="event.stopPropagation();showInfo('bestrank')" title="Info Best Rank">?</button></th>
     </tr></thead>
     <tbody id="class-body"></tbody>
   </table></div></div>
@@ -941,6 +947,24 @@ const INFO_TEXTS={
     body:`<b>Best ELO Ufficiale:</b> il valore ELO più alto raggiunto <b>al termine di un torneo</b>, cioè dopo l'ultima gara di ogni evento. Rappresenta il picco "certificato" del pilota.<br><br>
 <b>Best ELO Non Ufficiale:</b> il valore più alto mai registrato <b>in qualsiasi momento</b>, anche a metà torneo dopo una singola gara. Può essere più alto di quello ufficiale perché è un valore temporaneo, non necessariamente mantenuto fino alla fine dell'evento.<br><br>
 In sintesi: l'ELO ufficiale è più stabile e significativo; quello non ufficiale mostra il picco assoluto mai toccato.`
+  },
+  var:{
+    title:'📊 Variazione Ranking',
+    body:`Indica come è <b>cambiata la posizione in classifica</b> del pilota dall'ultimo torneo al precedente.<br><br>
+<b>▲ verde</b> = il pilota è salito di quella quantità di posizioni.<br>
+<b>▼ rosso</b> = il pilota è sceso di quella quantità di posizioni.<br>
+<b>0</b> = posizione invariata.<br>
+<b>—</b> = nessun dato precedente disponibile (es. primo torneo).<br><br>
+Il confronto è sempre basato sull'<b>ELO ufficiale</b> al termine dell'ultimo torneo rispetto a quello precedente.`
+  },
+  bestrank:{
+    title:'🏅 Miglior Posizione in Classifica',
+    body:`La <b>migliore posizione nel ranking ufficiale</b> mai raggiunta dal pilota al termine di un torneo.<br><br>
+Il formato è <b>X / Y</b>:<br>
+• <b>X</b> = posizione raggiunta in classifica<br>
+• <b>Y</b> = numero di piloti attivi in quel momento<br><br>
+<b>Esempio:</b> <b>1 / 12</b> significa 1° posto con 12 giocatori attivi.<br><br>
+Se lo stesso piazzamento è stato ottenuto più volte, si mantiene quello con il <b>maggior numero di giocatori attivi</b>, perché competere contro più avversari è più significativo.`
   }
 };
 
@@ -969,39 +993,52 @@ function getBestElo(player, mode){
   return officialVals.length?Math.max(...officialVals):null;
 }
 
-// Compute rank change vs pre-last-torneo position
-// Returns {delta, prevPos, curPos} for each player in sorted list
-function getRankDeltas(sortedPlayers){
-  // Find the last torneo name in the timeline (most recent cron)
-  let lastTorneo=null;
-  let maxCron=-Infinity;
-  for(const p of Object.values(PLAYERS)){
-    for(const pt of (p.eloTimeline||[])){
-      if(pt.cron>maxCron&&pt.torneo){maxCron=pt.cron;lastTorneo=pt.torneo;}
+// Best official ranking position ever: {pos, total} or null
+function getBestRank(playerName){
+  const torneoElo={};
+  for(const[pn,pl] of Object.entries(PLAYERS)){
+    for(const pt of (pl.eloTimeline||[])){
+      const t=pt.torneo||'__none__';
+      if(!torneoElo[t])torneoElo[t]={};
+      if(!torneoElo[t][pn]||pt.cron>torneoElo[t][pn].cron) torneoElo[t][pn]={elo:pt.elo,cron:pt.cron};
     }
   }
-  if(!lastTorneo) return {};
+  const order=Object.entries(torneoElo)
+    .filter(([t])=>t!=='__none__')
+    .map(([t,m])=>({t,maxCron:Math.max(...Object.values(m).map(v=>v.cron))}))
+    .sort((a,b)=>a.maxCron-b.maxCron);
+  let cum={},bestPos=null,bestTotal=null;
+  for(const{t} of order){
+    for(const[pn,v] of Object.entries(torneoElo[t])) cum[pn]=v.elo;
+    const sorted=Object.entries(cum).sort((a,b)=>b[1]-a[1]);
+    const pos=sorted.findIndex(([pn])=>pn===playerName)+1;
+    if(pos<=0) continue;
+    const total=sorted.length;
+    if(bestPos===null||pos<bestPos||(pos===bestPos&&total>bestTotal)){bestPos=pos;bestTotal=total;}
+  }
+  return bestPos===null?null:{pos:bestPos,total:bestTotal};
+}
 
-  // Build ELO snapshot BEFORE the last torneo for each player
+// Rank deltas — always based on global ELO order, never affected by current sort
+function getRankDeltas(){
+  const sorted=Object.values(PLAYERS).filter(x=>x.lastRk).sort((a,b)=>b.lastRk-a.lastRk);
+  let lastTorneo=null,maxCron=-Infinity;
+  for(const p of Object.values(PLAYERS))
+    for(const pt of (p.eloTimeline||[]))
+      if(pt.cron>maxCron&&pt.torneo){maxCron=pt.cron;lastTorneo=pt.torneo;}
+  if(!lastTorneo) return {};
   const preElo={};
   for(const p of Object.values(PLAYERS)){
     const tl=(p.eloTimeline||[]).filter(pt=>pt.torneo!==lastTorneo);
     if(tl.length) preElo[p.name]=tl[tl.length-1].elo;
   }
-
-  // Sort players by preElo to get their previous rank
-  const prevRanked=Object.entries(preElo).sort((a,b)=>b[1]-a[1]).map(([n],i)=>({name:n,rank:i+1}));
   const prevRankMap={};
-  prevRanked.forEach(({name,rank})=>prevRankMap[name]=rank);
-
-  // Current rank = position in sortedPlayers
+  Object.entries(preElo).sort((a,b)=>b[1]-a[1]).forEach(([n],i)=>prevRankMap[n]=i+1);
   const deltas={};
-  sortedPlayers.forEach((p,i)=>{
-    const cur=i+1;
-    const prev=prevRankMap[p.name];
+  sorted.forEach((p,i)=>{
+    const cur=i+1,prev=prevRankMap[p.name];
     if(prev===undefined){deltas[p.name]={delta:null};return;}
-    const d=prev-cur; // positive = moved up
-    deltas[p.name]={delta:d,prev,cur};
+    deltas[p.name]={delta:prev-cur,prev,cur};
   });
   return deltas;
 }
@@ -1013,7 +1050,12 @@ function mkDeltaBadge(delta){
   return `<span class="rk-delta eq">0</span>`;
 }
 
-function thSort(f){if(sortField===f)sortDir*=-1;else{sortField=f;sortDir=f==='avgpos'?1:-1;}document.getElementById('sort-sel').value=f;renderClass();}
+function thSort(f){
+  if(sortField===f) sortDir*=-1;
+  else{sortField=f; sortDir=(f==='avgpos'||f==='bestrank')?1:-1;}
+  document.getElementById('sort-sel').value=f;
+  renderClass();
+}
 function getFilteredStats(){
   const aF=document.getElementById('anno-sel').value,tF=document.getElementById('torn-sel').value;
   if(!aF&&!tF)return PLAYERS;
@@ -1029,15 +1071,35 @@ function getFilteredStats(){
 function renderClass(){
   const f=document.getElementById('sort-sel').value,mg=parseInt(document.getElementById('ming-sel').value)||0;
   sortField=f;
-  ['gare','wins','winpct','avgpos','rk'].forEach(x=>{const el=document.getElementById('th-'+x);if(el)el.className=sortField===x?(sortDir===1?'sa':'sd'):'';});
+  ['gare','wins','winpct','avgpos','rk','var','bestelo','bestrank'].forEach(x=>{
+    const el=document.getElementById('th-'+x);
+    if(el) el.className=sortField===x?(sortDir===1?'sa':'sd'):'';
+  });
   const pm=getFilteredStats();
   let pl=Object.values(pm).filter(p=>p.gare>=mg);
+  // Deltas computed once from global ELO order — not affected by sort
+  const deltas=getRankDeltas();
   pl.sort((a,b)=>{
-    const va=f==='rk'?a.lastRk:f==='wins'?a.wins:f==='winpct'?a.winPct:f==='avgpos'?a.avgPos:a.gare;
-    const vb=f==='rk'?b.lastRk:f==='wins'?b.wins:f==='winpct'?b.winPct:f==='avgpos'?b.avgPos:b.gare;
-    return(va-vb)*sortDir;
+    let va,vb;
+    if(f==='rk'){va=a.lastRk;vb=b.lastRk;}
+    else if(f==='wins'){va=a.wins;vb=b.wins;}
+    else if(f==='winpct'){va=a.winPct;vb=b.winPct;}
+    else if(f==='avgpos'){va=a.avgPos;vb=b.avgPos;}
+    else if(f==='gare'){va=a.gare;vb=b.gare;}
+    else if(f==='var'){
+      va=deltas[a.name]?.delta??null; vb=deltas[b.name]?.delta??null;
+      if(va===null&&vb===null) return 0;
+      if(va===null) return 1; if(vb===null) return -1;
+      return (va-vb)*sortDir;
+    } else if(f==='bestelo'){
+      va=getBestElo(PLAYERS[a.name]||a,beloMode)??-Infinity;
+      vb=getBestElo(PLAYERS[b.name]||b,beloMode)??-Infinity;
+    } else if(f==='bestrank'){
+      const ra=getBestRank(a.name),rb=getBestRank(b.name);
+      va=ra?ra.pos:9999; vb=rb?rb.pos:9999;
+    } else{va=a.lastRk;vb=b.lastRk;}
+    return (va-vb)*sortDir;
   });
-  const deltas=getRankDeltas(pl);
   const tb=document.getElementById('class-body'); tb.innerHTML='';
   pl.forEach((p,i)=>{
     const pct=Math.round((p.winPct||0)*100),rc=i===0?'r1':i===1?'r2':i===2?'r3':'';
@@ -1046,14 +1108,18 @@ function renderClass(){
     const bestElo=getBestElo(fullP,beloMode);
     const bestEloHtml=bestElo!==null?`<span class="badge by" style="font-size:.8rem;padding:.12rem .55rem">${Math.round(bestElo)}</span>`:'<span style="color:var(--muted)">—</span>';
     const deltaD=deltas[p.name]||{};
-    tb.innerHTML+=`<tr><td><span class="rn ${rc}">${i+1}</span></td>
+    const br=getBestRank(p.name);
+    const brHtml=br?`<span style="font-family:'Orbitron',monospace;font-size:.75rem;font-weight:700;color:var(--yellow)">${br.pos}</span><span style="color:var(--muted);font-size:.7rem"> / ${br.total}</span>`:'<span style="color:var(--muted)">—</span>';
+    tb.innerHTML+=`<tr>
+      <td><span class="rn ${rc}">${i+1}</span></td>
       <td><span class="pl" onclick="openPlayer('${p.name}')">${p.name}</span></td>
       <td>${p.gare}</td><td>${p.wins}</td>
       <td><div class="sbw"><div class="sb"><div class="sbf" style="width:${pct}%"></div></div><span>${pct}%</span></div></td>
       <td>${(p.avgPos||0).toFixed(2)}</td>
       <td><span class="badge ${ec}" style="font-size:.85rem;padding:.15rem .65rem">${elo}</span></td>
       <td>${mkDeltaBadge(deltaD.delta)}</td>
-      <td>${bestEloHtml}</td></tr>`;
+      <td>${bestEloHtml}</td>
+      <td>${brHtml}</td></tr>`;
   });
 }
 
@@ -1111,15 +1177,15 @@ function renderPlayer(){
   const podi=(fPositions[1]||0)+(fPositions[2]||0)+(fPositions[3]||0);
 
   const maxP=Math.max(...fPositions.slice(1,13),1);
-  let posH='<div style="display:flex;gap:3px;align-items:flex-end;height:52px;margin-top:.7rem">';
+  let posH='<div style="position:relative"><div id="pos-bars-wrap" style="display:flex;gap:3px;align-items:flex-end;height:52px;margin-top:.7rem">';
   for(let i=1;i<=12;i++){
     const cnt=fPositions[i]||0,h=Math.round(cnt/maxP*42);
     const col=i===1?'var(--yellow)':i<=3?'var(--green)':i<=6?'var(--blue)':'var(--muted)';
-    posH+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="width:100%;background:${col};height:${h}px;border-radius:2px 2px 0 0;min-height:2px;opacity:.85" title="${cnt}x ${i}°"></div>
+    posH+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="showPosCount(event,${i},${cnt})">
+      <div style="width:100%;background:${col};height:${h}px;border-radius:2px 2px 0 0;min-height:2px;opacity:.85;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85"></div>
       <span style="font-size:.52rem;color:var(--muted)">${i}</span></div>`;
   }
-  posH+='</div>';
+  posH+='</div><div id="pos-count-tip" style="display:none;position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--yellow);border-radius:.45rem;padding:.25rem .6rem;font-size:.78rem;font-family:\'Orbitron\',monospace;color:var(--yellow);white-space:nowrap;pointer-events:none;z-index:5"></div></div>';
 
   // Profile card with character/vehicle images
   const prof=PLAYER_PROFILES[name]||{};
@@ -1211,9 +1277,8 @@ function renderPlayer(){
   const fotoUrl=(prof.foto_profilo||'').trim();
   const avatarHtml=mkAvatar(name,'4rem');
 
-  // Rank delta for this player
-  const allSorted=Object.values(PLAYERS).filter(x=>x.lastRk).sort((a,b)=>b.lastRk-a.lastRk);
-  const pDeltas=getRankDeltas(allSorted);
+  // Rank delta for this player (global ELO order)
+  const pDeltas=getRankDeltas();
   const pDelta=pDeltas[name]||{};
   const deltaHtml=mkDeltaBadge(pDelta.delta);
 
@@ -1238,7 +1303,10 @@ function renderPlayer(){
         </div>
         <div class="sl">ELO 🌐</div>
       </div>
-      <div class="sb2"><div style="display:flex;align-items:center;justify-content:center;gap:.35rem"><div class="sv">${elo}</div>${deltaHtml}</div><div class="sl">Var. ultimo torneo</div></div>
+      <div class="sb2">
+        <div style="display:flex;align-items:center;justify-content:center;gap:.3rem">${deltaHtml}<button class="info-btn" onclick="showInfo('var')">?</button></div>
+        <div class="sl">Var. ultimo torneo</div>
+      </div>
       <div class="sb2">
         <div style="display:flex;align-items:center;justify-content:center;gap:.3rem;flex-wrap:wrap">
           ${bestEloUffHtml}
@@ -1247,6 +1315,10 @@ function renderPlayer(){
         <div class="sl" style="margin-top:.3rem">Best ELO Uff.</div>
       </div>
       <div class="sb2"><div>${bestEloAllHtml}</div><div class="sl">Best ELO Non Uff.</div></div>
+      ${(()=>{const br=getBestRank(name);return br
+        ?`<div class="sb2"><div style="display:flex;align-items:center;justify-content:center;gap:.22rem"><span style="font-family:'Orbitron',monospace;font-size:1.25rem;font-weight:700;color:var(--yellow)">${br.pos}</span><span style="color:var(--muted);font-size:.85rem">/${br.total}</span><button class="info-btn" onclick="showInfo('bestrank')">?</button></div><div class="sl">Best Rank</div></div>`
+        :`<div class="sb2"><div class="sv" style="color:var(--muted)">—</div><div class="sl">Best Rank</div></div>`
+      })()}
       <div class="sb2"><div class="sv">${fWins}</div><div class="sl">Vittorie</div></div>
       <div class="sb2"><div class="sv">${pct}%</div><div class="sl">% Vittoria</div></div>
       <div class="sb2"><div class="sv">${avgPos.toFixed(2)}</div><div class="sl">Pos. Media</div></div>
@@ -1280,6 +1352,17 @@ function renderPlayer(){
   window._oppsAll={opps,mkOpp,OPPS_INIT};
   window._pmapsAll={playerMaps,mkMapRow,MAPS_INIT};
 }
+function showPosCount(e,pos,cnt){
+  e.stopPropagation();
+  const tip=document.getElementById('pos-count-tip');
+  if(!tip) return;
+  tip.textContent=`${cnt}x pos. ${pos}°`;
+  tip.style.display='block';
+}
+document.addEventListener('click',function(){
+  const tip=document.getElementById('pos-count-tip');
+  if(tip) tip.style.display='none';
+});
 function showAllH(){
   const{hist,mkH,INIT}=window._histAll;
   document.getElementById('hist-list').innerHTML=mkH(hist);
@@ -1418,8 +1501,7 @@ function renderH2H(){
   });
 
   // Rank delta and best ELO for each selected player
-  const allSortedH2H=Object.values(PLAYERS).filter(x=>x.lastRk).sort((a,b)=>b.lastRk-a.lastRk);
-  const h2hDeltas=getRankDeltas(allSortedH2H);
+  const h2hDeltas=getRankDeltas();
 
   let genHtml='<div class="card" style="margin-bottom:1rem"><div class="card-title">📊 Confronto Statistiche Generali</div>';
   genHtml+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem">';
@@ -1450,7 +1532,7 @@ function renderH2H(){
   });
 
   // Rank delta row
-  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.04)">📊 Var. ultimo torneo</td>`;
+  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.04)">📊 Var. ultimo torneo <button class="info-btn" onclick="showInfo('var')">?</button></td>`;
   sel.forEach(n=>{
     const d=h2hDeltas[n]||{};
     genHtml+=`<td style="text-align:center;padding:.38rem .5rem;border-bottom:1px solid rgba(255,255,255,.04)">${mkDeltaBadge(d.delta)}</td>`;
@@ -1466,10 +1548,19 @@ function renderH2H(){
   genHtml+='</tr>';
 
   // Best ELO unofficial row
-  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted)">⭐ Best ELO Non Uff.</td>`;
+  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.04)">⭐ Best ELO Non Uff.</td>`;
   sel.forEach(n=>{
     const pp=PLAYERS[n]||{}; const v=getBestElo(pp,'all');
-    genHtml+=`<td style="text-align:center;padding:.38rem .5rem"><span class="badge bm" style="font-size:.8rem">${v!==null?Math.round(v):'—'}</span></td>`;
+    genHtml+=`<td style="text-align:center;padding:.38rem .5rem;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge bm" style="font-size:.8rem">${v!==null?Math.round(v):'—'}</span></td>`;
+  });
+  genHtml+='</tr>';
+
+  // Best Rank row
+  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted)">🏅 Best Rank <button class="info-btn" onclick="showInfo('bestrank')">?</button></td>`;
+  sel.forEach(n=>{
+    const br=getBestRank(n);
+    const brHtml=br?`<span style="font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;color:var(--yellow)">${br.pos}</span><span style="color:var(--muted);font-size:.75rem"> / ${br.total}</span>`:'<span style="color:var(--muted)">—</span>';
+    genHtml+=`<td style="text-align:center;padding:.38rem .5rem">${brHtml}</td>`;
   });
   genHtml+='</tr>';
 
