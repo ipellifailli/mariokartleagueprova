@@ -282,6 +282,22 @@ th:nth-child(2){text-align:left;}
 .belo-toggle{display:flex;gap:.3rem;align-items:center;font-size:.72rem;}
 .belo-opt{background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:.2rem .6rem;border-radius:.4rem;cursor:pointer;transition:all .15s;font-family:'Exo 2',sans-serif;font-size:.72rem;}
 .belo-opt.active{background:rgba(255,217,0,.15);border-color:var(--yellow);color:var(--yellow);}
+
+/* View tab buttons (ELO vs 2026/27) */
+.view-tab-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Orbitron',monospace;font-size:.78rem;font-weight:700;padding:.5rem 1.1rem;border-radius:2rem;cursor:pointer;transition:all .2s;}
+.view-tab-btn:hover{border-color:var(--yellow);color:var(--yellow);}
+.view-tab-btn.active{background:linear-gradient(135deg,var(--yellow),#ff6d00);border-color:transparent;color:#06060e;box-shadow:0 0 12px rgba(255,217,0,.35);}
+/* Column filter popover */
+.cols-popover{position:absolute;top:calc(100% + .4rem);left:0;background:var(--card2);border:1px solid var(--border);border-radius:.8rem;padding:.8rem 1rem;box-shadow:0 10px 25px rgba(0,0,0,.7);z-index:100;min-width:230px;display:none;}
+.cols-popover-title{font-family:'Orbitron',monospace;font-size:.65rem;color:var(--yellow);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.65rem;border-bottom:1px solid var(--border);padding-bottom:.35rem;}
+.col-cb-item{display:flex;align-items:center;gap:.55rem;font-size:.8rem;color:var(--text);margin-bottom:.45rem;cursor:pointer;user-select:none;}
+.col-cb-item:hover{color:var(--yellow);}
+.col-cb-item input[type=checkbox]{accent-color:var(--yellow);cursor:pointer;width:14px;height:14px;}
+/* Palmarès accordion */
+.palmares-row{background:var(--card2);border:1px solid var(--border);border-radius:.6rem;padding:.65rem .85rem;margin-bottom:.5rem;cursor:pointer;transition:all .2s;}
+.palmares-row:hover{border-color:var(--yellow);background:rgba(255,217,0,.04);}
+.palmares-detail{background:rgba(0,0,0,.35);border-radius:.5rem;padding:.7rem;margin-top:.55rem;border:1px solid rgba(255,255,255,.06);font-size:.82rem;}
+.pts-box-val{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;color:var(--yellow);line-height:1;margin-bottom:.2rem;text-shadow:0 0 12px rgba(255,217,0,.35);}
 </style>
 </head>
 <body>
@@ -322,52 +338,134 @@ th:nth-child(2){text-align:left;}
 <!-- CLASSIFICA -->
 <div id="classifica" class="section active">
   <div class="sec-title">🏆 Classifica Generale</div>
-  <div class="frow">
-    <label>Ordina:</label>
-    <select id="sort-sel" onchange="renderClass()">
-      <option value="rk">Ranking ELO</option>
-      <option value="wins">Vittorie</option>
-      <option value="winpct">% Vittorie</option>
-      <option value="avgpos">Pos. Media</option>
-      <option value="gare">Gare Totali</option>
-      <option value="var">Variazione</option>
-      <option value="bestelo">Best ELO</option>
-      <option value="bestrank">Best Rank</option>
-    </select>
-    <label>Min. gare:</label>
-    <select id="ming-sel" onchange="renderClass()">
-      <option value="0" selected>Tutti</option>
-      <option value="1">1+</option>
-      <option value="5">5+</option>
-      <option value="10">10+</option>
-      <option value="20">20+</option>
-      <option value="50">50+</option>
-    </select>
-    <label>Anno:</label>
-    <select id="anno-sel" onchange="onAnnoChange('class')"><option value="">Tutti</option></select>
-    <label>Torneo:</label>
-    <select id="torn-sel" onchange="renderClass()"><option value="">Tutti</option></select>
+
+  <!-- VIEW SWITCHER (ELO vs CLASSIFICA 2026/27) -->
+  <div style="display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap;align-items:center">
+    <button id="btn-view-elo" class="view-tab-btn active" onclick="switchClassView('elo')">🏎️ Ranking ELO</button>
+    <button id="btn-view-pts" class="view-tab-btn" onclick="switchClassView('pts')">🎾 Classifica 2026/27 (Punti Torneo)</button>
   </div>
-  <div class="card"><div class="tw" style="max-height:70vh;overflow-y:auto;overflow-x:auto;"><table>
-    <thead><tr>
-      <th>#</th><th>Pilota</th>
-      <th id="th-gare" onclick="thSort('gare')">Gare</th>
-      <th id="th-wins" onclick="thSort('wins')">Vittorie</th>
-      <th id="th-winpct" onclick="thSort('winpct')">% Vit.</th>
-      <th id="th-avgpos" onclick="thSort('avgpos')">Pos. Media</th>
-      <th id="th-rk" onclick="thSort('rk')" class="sd">ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('elo')" title="Info ELO">?</button></th>
-      <th id="th-var" onclick="thSort('var')">Var. <button class="info-btn" onclick="event.stopPropagation();showInfo('var')" title="Info Variazione">?</button></th>
-      <th id="th-bestelo" onclick="thSort('bestelo')" style="white-space:normal;min-width:4.5rem"><div style="display:flex;flex-direction:column;align-items:center;gap:.18rem">
-        <span style="white-space:nowrap;display:inline-flex;align-items:center;gap:.22rem">Best ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('bestelo')" title="Info Best ELO">?</button></span>
-        <span style="display:inline-flex;gap:.22rem" onclick="event.stopPropagation()">
-          <button class="belo-opt active" id="belo-uff-btn" onclick="setBeloMode('uff')">Uff.</button>
-          <button class="belo-opt" id="belo-all-btn" onclick="setBeloMode('all')">Non uff.</button>
-        </span>
-      </div></th>
-      <th id="th-bestrank" onclick="thSort('bestrank')">Best Rank <button class="info-btn" onclick="event.stopPropagation();showInfo('bestrank')" title="Info Best Rank">?</button></th>
-    </tr></thead>
-    <tbody id="class-body"></tbody>
-  </table></div></div>
+
+  <!-- ELO VIEW -->
+  <div id="class-elo-view">
+    <div class="frow" style="position:relative">
+      <label>Ordina:</label>
+      <select id="sort-sel" onchange="renderClass()">
+        <option value="rk">Ranking ELO</option>
+        <option value="pts">Punti 26/27</option>
+        <option value="wins">Vittorie</option>
+        <option value="winpct">% Vittorie</option>
+        <option value="avgpos">Pos. Media</option>
+        <option value="gare">Gare Totali</option>
+        <option value="var">Variazione</option>
+        <option value="bestelo">Best ELO</option>
+        <option value="bestrank">Best Rank</option>
+      </select>
+      <label>Min. gare:</label>
+      <select id="ming-sel" onchange="renderClass()">
+        <option value="0" selected>Tutti</option>
+        <option value="1">1+</option>
+        <option value="5">5+</option>
+        <option value="10">10+</option>
+        <option value="20">20+</option>
+        <option value="50">50+</option>
+      </select>
+      <label>Anno:</label>
+      <select id="anno-sel" onchange="onAnnoChange('class')"><option value="">Tutti</option></select>
+      <label>Torneo:</label>
+      <select id="torn-sel" onchange="renderClass()"><option value="">Tutti</option></select>
+      <label>Tipo Match:</label>
+      <select id="class-match-type" onchange="renderClass()">
+        <option value="TUTTE">📊 Tutte le Stats</option>
+        <option value="LOCALE">🖥️ Solo Locale</option>
+        <option value="LAN">🌐 Solo LAN</option>
+      </select>
+
+      <!-- COLUMN FILTER BUTTON & POPOVER -->
+      <div style="position:relative;display:inline-block">
+        <button class="rk-btn" id="cols-toggle-btn" onclick="toggleColsMenu(event)" style="font-size:.75rem;padding:.4rem .85rem;display:inline-flex;align-items:center;gap:.35rem">
+          ⚙️ Colonne ▾
+        </button>
+        <div id="cols-popover" class="cols-popover" onclick="event.stopPropagation()">
+          <div class="cols-popover-title">Visibilità Colonne</div>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-gare" onchange="toggleColumn('gare')"> Gare</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-wins" onchange="toggleColumn('wins')"> Vittorie</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-winpct" onchange="toggleColumn('winpct')"> % Vittorie</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-avgpos" onchange="toggleColumn('avgpos')"> Pos. Media</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-rk" onchange="toggleColumn('rk')"> ELO</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-pts" onchange="toggleColumn('pts')"> Punti 26/27</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-var" onchange="toggleColumn('var')"> Variazione Ranking (VAR)</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-bestelo" onchange="toggleColumn('bestelo')"> Best ELO</label>
+          <label class="col-cb-item"><input type="checkbox" id="col-cb-bestrank" onchange="toggleColumn('bestrank')"> Best Rank</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card"><div class="tw" style="max-height:70vh;overflow-y:auto;overflow-x:auto;"><table>
+      <thead><tr>
+        <th>#</th><th>Pilota</th>
+        <th id="th-gare" class="col-gare" onclick="thSort('gare')">Gare</th>
+        <th id="th-wins" class="col-wins" onclick="thSort('wins')">Vittorie</th>
+        <th id="th-winpct" class="col-winpct" onclick="thSort('winpct')">% Vit.</th>
+        <th id="th-avgpos" class="col-avgpos" onclick="thSort('avgpos')">Pos. Media</th>
+        <th id="th-rk" class="col-rk sd" onclick="thSort('rk')">ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('elo')" title="Info ELO">?</button></th>
+        <th id="th-pts" class="col-pts" onclick="thSort('pts')">Punti 26/27 <button class="info-btn" onclick="event.stopPropagation();showInfo('pts')" title="Info Punti 2026/27">?</button></th>
+        <th id="th-var" class="col-var" onclick="thSort('var')">Var. <button class="info-btn" onclick="event.stopPropagation();showInfo('var')" title="Info Variazione">?</button></th>
+        <th id="th-bestelo" class="col-bestelo" onclick="thSort('bestelo')" style="white-space:normal;min-width:4.5rem"><div style="display:flex;flex-direction:column;align-items:center;gap:.18rem">
+          <span style="white-space:nowrap;display:inline-flex;align-items:center;gap:.22rem">Best ELO <button class="info-btn" onclick="event.stopPropagation();showInfo('bestelo')" title="Info Best ELO">?</button></span>
+          <span style="display:inline-flex;gap:.22rem" onclick="event.stopPropagation()">
+            <button class="belo-opt active" id="belo-uff-btn" onclick="setBeloMode('uff')">Uff.</button>
+            <button class="belo-opt" id="belo-all-btn" onclick="setBeloMode('all')">Non uff.</button>
+          </span>
+        </div></th>
+        <th id="th-bestrank" class="col-bestrank" onclick="thSort('bestrank')">Best Rank <button class="info-btn" onclick="event.stopPropagation();showInfo('bestrank')" title="Info Best Rank">?</button></th>
+      </tr></thead>
+      <tbody id="class-body"></tbody>
+    </table></div></div>
+  </div>
+
+  <!-- DEDICATED TENNIS-STYLE POINTS VIEW -->
+  <div id="class-pts-view" style="display:none">
+    <div class="card" style="margin-bottom:1rem;background:linear-gradient(135deg,rgba(255,217,0,.08),rgba(0,87,184,.08));border-color:rgba(255,217,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem">
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.05rem;font-weight:900;color:var(--yellow);margin-bottom:.3rem">
+            🎾 Race 2026/27 (Classifica Punti Torneo)
+          </div>
+          <div style="font-size:.8rem;color:var(--text);line-height:1.45">
+            Classifica dinamica a rotazione annuale (stile circuito ATP di tennis): si sommano i <b>5 migliori punteggi</b> ottenuti dai piazzamenti nei tornei + <b>tutti i punti bonus</b>.<br>
+            I punti scadono esattamente dopo <b>1 anno esatto</b> dalla data di svolgimento del torneo.
+          </div>
+        </div>
+        <button class="info-btn" onclick="showInfo('pts')" style="font-size:.85rem;padding:.35rem .75rem;border-radius:.5rem" title="Come funziona il ranking a punti?">Regolamento Punti ?</button>
+      </div>
+    </div>
+
+    <div class="frow">
+      <label>Cerca pilota:</label>
+      <input type="text" id="pts-search-input" placeholder="Cerca pilota..." oninput="renderClassPts()" style="width:190px">
+      <label>Ordina:</label>
+      <select id="pts-sort-sel" onchange="renderClassPts()">
+        <option value="total">Punti Totali</option>
+        <option value="top5">Top 5 Piazzamenti</option>
+        <option value="bonus">Punti Bonus</option>
+        <option value="tourneys">Tornei Giocati</option>
+      </select>
+    </div>
+
+    <div class="card"><div class="tw" style="max-height:70vh;overflow-y:auto;overflow-x:auto;"><table>
+      <thead><tr>
+        <th>#</th>
+        <th>Pilota</th>
+        <th id="th-pts-tot" onclick="sortClassPts('total')" class="sd">Punti Totali 26/27</th>
+        <th id="th-pts-top5" onclick="sortClassPts('top5')">Top 5 Piazzamenti</th>
+        <th id="th-pts-bon" onclick="sortClassPts('bonus')">Punti Bonus</th>
+        <th id="th-pts-cnt" onclick="sortClassPts('tourneys')">Tornei Giocati</th>
+        <th>Miglior Risultato</th>
+        <th>Dettagli Punti</th>
+      </tr></thead>
+      <tbody id="class-pts-body"></tbody>
+    </table></div></div>
+  </div>
 </div>
 
 <!-- GIOCATORE -->
@@ -391,6 +489,11 @@ th:nth-child(2){text-align:left;}
     <select id="p-torneo-sel" onchange="renderPlayer()" style="font-size:.78rem">
       <option value="">Tutti i tornei</option>
     </select>
+    <select id="player-match-type" onchange="renderPlayer()" style="font-size:.78rem">
+      <option value="TUTTE">📊 Tutte le Stats</option>
+      <option value="LOCALE">🖥️ Solo Locale</option>
+      <option value="LAN">🌐 Solo LAN</option>
+    </select>
     <span style="font-size:.72rem;color:var(--muted);font-style:italic">🏆 ELO sempre globale</span>
   </div>
   <div id="pcontent"></div>
@@ -407,6 +510,11 @@ th:nth-child(2){text-align:left;}
     </select>
     <select id="h2h-torneo-sel" onchange="renderH2H()" style="font-size:.78rem">
       <option value="">Tutti i tornei</option>
+    </select>
+    <select id="h2h-match-type" onchange="renderH2H()" style="font-size:.78rem">
+      <option value="TUTTE">📊 Tutte le Stats</option>
+      <option value="LOCALE">🖥️ Solo Locale</option>
+      <option value="LAN">🌐 Solo LAN</option>
     </select>
     <span style="font-size:.75rem;color:var(--muted);margin-left:.4rem">Modalità:</span>
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;cursor:pointer">
@@ -479,6 +587,11 @@ th:nth-child(2){text-align:left;}
     <select id="rk-torneo-sel" onchange="rkApplyFilter()" style="font-size:.78rem">
       <option value="">Tutti i tornei</option>
     </select>
+    <select id="rk-match-type" onchange="rkApplyFilter()" style="font-size:.78rem">
+      <option value="TUTTE">📊 Tutte le Stats</option>
+      <option value="LOCALE">🖥️ Solo Locale</option>
+      <option value="LAN">🌐 Solo LAN</option>
+    </select>
   </div>
   <div class="card">
     <div class="rk-controls">
@@ -506,6 +619,14 @@ th:nth-child(2){text-align:left;}
 <!-- MAPPE -->
 <div id="mappe" class="section">
   <div class="sec-title">🗺️ Mappe per Trofeo</div>
+  <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem;padding:.5rem .8rem;background:var(--card2);border-radius:.6rem;border:1px solid var(--border)">
+    <span style="font-size:.75rem;color:var(--muted)">📅 Filtra per:</span>
+    <select id="map-match-type" onchange="renderMaps()" style="font-size:.78rem">
+      <option value="TUTTE">📊 Tutte le Stats</option>
+      <option value="LOCALE">🖥️ Solo Locale</option>
+      <option value="LAN">🌐 Solo LAN</option>
+    </select>
+  </div>
   <div id="mappe-highlights"></div>
   <div id="mappe-content"></div>
 </div>
@@ -521,7 +642,11 @@ th:nth-child(2){text-align:left;}
 // ============================================================
 // STATE
 // ============================================================
-let RACES=[], PLAYERS={}, TORNEO_LINKS={}, MAP_STATS=[], TROPHY_INFO={}, CRON_LABELS={}, TIMELINE_FRAMES=[];
+let RACES=[], PLAYERS={}, TORNEO_LINKS={}, TORNEO_LAST_ROW={}, MAP_STATS=[], TROPHY_INFO={}, CRON_LABELS={}, TIMELINE_FRAMES=[];
+let TOURNAMENT_ROWS=[], PLAYER_TOURNAMENTS={};
+let classViewMode='elo';
+let ptsSortField='total', ptsSortDir=-1;
+let classCols={gare:true, wins:true, winpct:true, avgpos:true, rk:true, pts:true, var:false, bestelo:false, bestrank:false};
 let PLAYER_PROFILES={}, CHAR_IMGS={}, VEHICLE_IMGS={};
 let sortField='rk', sortDir=-1;
 let rkFrame=0, rkPlaying=false, rkTimer=null;
@@ -559,48 +684,381 @@ async function fetchAndLoad(){
 
 
 
+
+// ============================================================
+// TOURNAMENT POINTS (2026/27) & COLUMN VISIBILITY SYSTEM
+// ============================================================
+function parseTournamentDate(val){
+  if(!val) return null;
+  if(val instanceof Date) return val;
+  const str=String(val).trim();
+  if(!str) return null;
+  if(str.includes('T')||/^\d{4}-\d{2}-\d{2}/.test(str)){
+    const d=new Date(str);
+    if(!isNaN(d.getTime())) return d;
+  }
+  const parts=str.split(/[\/\-\.]/);
+  if(parts.length===3&&parts[2].length===4){
+    const d=new Date(+parts[2],+parts[1]-1,+parts[0]);
+    if(!isNaN(d.getTime())) return d;
+  }
+  const d=new Date(str);
+  return isNaN(d.getTime())?null:d;
+}
+
+function formatTournamentDate(d){
+  if(!d) return '';
+  const day=String(d.getDate()).padStart(2,'0');
+  const month=String(d.getMonth()+1).padStart(2,'0');
+  const year=d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function isTournamentExpired(tournamentDate, refDate=new Date()){
+  if(!tournamentDate) return false;
+  const exp=new Date(tournamentDate);
+  exp.setFullYear(exp.getFullYear()+1);
+  return refDate >= exp;
+}
+
+function getPlayerTournamentStats(playerName, refDate=new Date()){
+  const list=(PLAYER_TOURNAMENTS[playerName]||[]).slice();
+  list.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
+  const valid=list.filter(t=>!isTournamentExpired(t.date, refDate));
+  const sortedPlacements=valid.slice().sort((a,b)=>b.puntiPiazzamento-a.puntiPiazzamento);
+  const top5=sortedPlacements.slice(0,5);
+  const top5Pts=top5.reduce((sum,t)=>sum+t.puntiPiazzamento,0);
+  const bonusPts=valid.reduce((sum,t)=>sum+t.puntiBonus,0);
+  const totalPts=top5Pts+bonusPts;
+  
+  const validBonuses=[];
+  for(const t of valid){
+    for(const b of t.bonusList){
+      validBonuses.push({bonus:b, pt:t.puntiBonus, torneo:t.torneo, dateStr:t.dateStr});
+    }
+  }
+
+  return {
+    allTourneys: list,
+    validTourneys: valid,
+    top5,
+    top5Pts,
+    bonusPts,
+    totalPts,
+    validBonuses
+  };
+}
+
+function initColumnVisibility(){
+  try{
+    const saved=localStorage.getItem('mk_class_cols');
+    if(saved){
+      Object.assign(classCols, JSON.parse(saved));
+    }
+  }catch(e){}
+  applyColumnVisibility();
+}
+
+function applyColumnVisibility(){
+  for(const[col, visible] of Object.entries(classCols)){
+    const ths=document.querySelectorAll('.col-'+col);
+    const tds=document.querySelectorAll('.col-'+col);
+    const displayVal=visible?'':'none';
+    ths.forEach(el=>el.style.display=displayVal);
+    tds.forEach(el=>el.style.display=displayVal);
+    const cb=document.getElementById('col-cb-'+col);
+    if(cb) cb.checked=visible;
+  }
+}
+
+function toggleColumn(col){
+  classCols[col]=!classCols[col];
+  try{
+    localStorage.setItem('mk_class_cols', JSON.stringify(classCols));
+  }catch(e){}
+  applyColumnVisibility();
+}
+
+function toggleColsMenu(e){
+  if(e) e.stopPropagation();
+  const m=document.getElementById('cols-popover');
+  if(m) m.style.display=m.style.display==='none'?'block':'none';
+}
+
+document.addEventListener('click', function(e){
+  const pop=document.getElementById('cols-popover');
+  const btn=document.getElementById('cols-toggle-btn');
+  if(pop && pop.style.display!=='none' && !pop.contains(e.target) && e.target!==btn){
+    pop.style.display='none';
+  }
+});
+
+function switchClassView(mode){
+  classViewMode=mode;
+  const btnElo=document.getElementById('btn-view-elo');
+  const btnPts=document.getElementById('btn-view-pts');
+  const viewElo=document.getElementById('class-elo-view');
+  const viewPts=document.getElementById('class-pts-view');
+  if(!btnElo||!btnPts||!viewElo||!viewPts) return;
+
+  if(mode==='elo'){
+    btnElo.classList.add('active');
+    btnPts.classList.remove('active');
+    viewElo.style.display='block';
+    viewPts.style.display='none';
+    renderClass();
+  } else {
+    btnPts.classList.add('active');
+    btnElo.classList.remove('active');
+    viewPts.style.display='block';
+    viewElo.style.display='none';
+    renderClassPts();
+  }
+}
+
+function sortClassPts(field){
+  if(ptsSortField===field) ptsSortDir*=-1;
+  else{ ptsSortField=field; ptsSortDir=-1; }
+  const sel=document.getElementById('pts-sort-sel');
+  if(sel) sel.value=field;
+  ['total','top5','bonus','tourneys'].forEach(x=>{
+    const el=document.getElementById('th-pts-'+(x==='total'?'tot':x==='bonus'?'bon':x==='tourneys'?'cnt':'top5'));
+    if(el) el.className=ptsSortField===x?(ptsSortDir===1?'sa':'sd'):'';
+  });
+  renderClassPts();
+}
+
+function renderClassPts(){
+  const tb=document.getElementById('class-pts-body');
+  if(!tb) return;
+  const q=(document.getElementById('pts-search-input')?.value||'').trim().toUpperCase();
+  const sortF=document.getElementById('pts-sort-sel')?.value||ptsSortField;
+  ptsSortField=sortF;
+
+  // Collect all pilots that have tournament entries or exist in PLAYERS
+  const names=new Set([...Object.keys(PLAYER_TOURNAMENTS), ...Object.keys(PLAYERS)]);
+  let rows=[];
+  for(const name of names){
+    const s=getPlayerTournamentStats(name);
+    if(s.allTourneys.length===0) continue; // Only show players who have participated in at least 1 tournament
+    if(q && !name.toUpperCase().includes(q)) continue;
+    rows.push({ name, stats: s });
+  }
+
+  rows.sort((a,b)=>{
+    let va,vb;
+    if(ptsSortField==='total'){ va=a.stats.totalPts; vb=b.stats.totalPts; }
+    else if(ptsSortField==='top5'){ va=a.stats.top5Pts; vb=b.stats.top5Pts; }
+    else if(ptsSortField==='bonus'){ va=a.stats.bonusPts; vb=b.stats.bonusPts; }
+    else if(ptsSortField==='tourneys'){ va=a.stats.validTourneys.length; vb=b.stats.validTourneys.length; }
+    else{ va=a.stats.totalPts; vb=b.stats.totalPts; }
+    return (va-vb)*ptsSortDir || a.name.localeCompare(b.name);
+  });
+
+  tb.innerHTML='';
+  rows.forEach((r, i)=>{
+    const s=r.stats;
+    const rc=i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const bestT=s.validTourneys[0];
+    const bestRes=bestT ? `<span class="badge ${bestT.pos.includes('1')?'by':'bb'}">${bestT.pos}</span> <span style="font-size:.78rem;color:var(--muted)">(${bestT.torneo})</span>` : '—';
+    const rowId=`pts-det-${i}`;
+
+    let detailHtml=`<div style="font-size:.78rem;padding:.4rem 0">
+      <div style="font-weight:700;color:var(--yellow);margin-bottom:.3rem">Migliori tornei conteggiati nella Top 5:</div>`;
+    if(s.top5.length){
+      detailHtml+=s.top5.map((t,ti)=>`<div>• #${ti+1} <b>${t.torneo}</b> (${t.dateStr}): <b>${t.pos}</b> = <span style="color:var(--yellow)">+${t.puntiPiazzamento} pt</span></div>`).join('');
+    } else {
+      detailHtml+=`<div style="color:var(--muted)">Nessun torneo valido</div>`;
+    }
+    if(s.validBonuses.length){
+      detailHtml+=`<div style="font-weight:700;color:var(--yellow);margin:.5rem 0 .2rem">Bonus validi:</div>`;
+      detailHtml+=s.validBonuses.map(b=>`<div>• 🎁 <b>${b.bonus}</b>: <span style="color:var(--yellow)">+${b.pt} pt</span> (${b.torneo})</div>`).join('');
+    }
+    detailHtml+=`</div>`;
+
+    tb.innerHTML+=`
+      <tr>
+        <td><span class="rn ${rc}">${i+1}</span></td>
+        <td style="text-align:left"><span class="pl" onclick="openPlayer('${r.name.replace(/'/g,"\'")}');">${r.name}</span></td>
+        <td><span class="badge by" style="font-family:'Orbitron',monospace;font-size:.9rem;padding:.2rem .7rem;font-weight:900">${s.totalPts}</span></td>
+        <td><span style="font-family:'Orbitron',monospace;font-size:.85rem;color:#4da6ff;font-weight:700">${s.top5Pts}</span></td>
+        <td><span style="font-family:'Orbitron',monospace;font-size:.85rem;color:var(--green);font-weight:700">+${s.bonusPts}</span></td>
+        <td><span class="badge bm">${s.validTourneys.length}</span></td>
+        <td>${bestRes}</td>
+        <td>
+          <button class="rk-btn" onclick="togglePtsDetail('${rowId}', this)" style="font-size:.7rem;padding:.25rem .6rem">🔍 Dettagli ▾</button>
+        </td>
+      </tr>
+      <tr id="${rowId}" style="display:none;background:rgba(0,0,0,.35)">
+        <td colspan="8" style="text-align:left;padding:.7rem 1.2rem;border-left:3px solid var(--yellow)">${detailHtml}</td>
+      </tr>
+    `;
+  });
+}
+
+function togglePtsDetail(id, btn){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const isHidden=el.style.display==='none';
+  el.style.display=isHidden?'table-row':'none';
+  if(btn) btn.textContent=isHidden?'🔍 Dettagli ▲':'🔍 Dettagli ▾';
+}
+
+function togglePalmaresDetail(idx){
+  const el=document.getElementById('pal-detail-'+idx);
+  const arrow=document.getElementById('pal-arrow-'+idx);
+  if(!el) return;
+  const isHidden=el.style.display==='none';
+  el.style.display=isHidden?'block':'none';
+  if(arrow) arrow.style.transform=isHidden?'rotate(180deg)':'none';
+}
+
 function parseRows(rows){
   const racesDict={},torneo_links={},eloTL={},cronLabels={},mapInfo={},trophyInfo={},playerProfiles={},torneoStatsMap={};
   const bad=new Set(['','MAPPA 1','MAPPA 2','MAPPA 3','MAPPA 4','MAPPA 5','MAPPA 6']);
+  const tournamentEntries=[];
+  const torneoLastRow={}; // torneo -> ultimo indice di riga in cui appare (per ordinamento cartelle)
+  
+  // Funzioni helper
+  const s=v=>{const x=String(v==null?'':v).trim().replace(/\s+/g,' ');return(x===''||x==='N/D'||x==='#VALUE!')?'':x;};
+  const n=v=>{const x=parseInt(v);return isNaN(x)?0:x;};
+  const fl=v=>{const x=parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(x)?0:x;};
+  
+  // First pass: read all rows and collect match data
+  const matchData={}; // match_id -> {players, mappa, anno, torneo, cron, nome_match, tipo_match, diff, partita}
+  
   for(let i=1;i<rows.length;i++){
     const r=rows[i];
-    const s=v=>{const x=String(v==null?'':v).trim().replace(/\s+/g,' ');return(x===''||x==='N/D'||x==='#VALUE!')?'':x;};
-    const n=v=>{const x=parseInt(v);return isNaN(x)?0:x;};
-    const fl=v=>{const x=parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(x)?0:x;};
-    const conc=s(r[0]); if(!conc) continue;
-    const posC=n(r[1]),sf1=s(r[2]),p1=n(r[3]),sf2=s(r[4]),p2=n(r[5]),sf3=s(r[6]),p3=n(r[7]);
-    const mappa=s(r[8]),anno=s(r[9]),elo=fl(r[10]),partita=n(r[11]),diff=s(r[12]);
-    const tornN=s(r[13]);
-    const cronRaw=r[14]; const cron=(cronRaw!==''&&cronRaw!=null&&String(cronRaw).trim()!=='')?n(cronRaw):null;
-    const match=s(r[15]),tornR=s(r[17]),link=s(r[18]),annoR=s(r[19]);
-    const mapU=s(r[20]),mapTrofeo=s(r[21]);
-    // Profile cols: X(23)=pilota, Y(24)=personaggio, Z(25)=veicolo, AA(26)=mappa1, AB(27)=mappa2, AC(28)=derapata, AD(29)=foto_profilo
-    const pilota=s(r[23]),personaggio=s(r[24]),veicolo=s(r[25]),mappa1=s(r[26]),mappa2=s(r[27]),derapata=s(r[28]),foto_profilo=s(r[29]);
-    if(!conc||!mappa) continue;
-    if(tornR&&link) torneo_links[tornR]={link, anno: annoR||null};
+    const pilota=s(r[0]); // A
+    const pos=n(r[1]); // B
+    const mappa=s(r[2]); // C
+    const anno=s(r[3]); // D
+    const elo=fl(r[4]); // E
+    const difficolta=s(r[5]); // F
+    const torneo=s(r[6]); // G
+    const tipo_match=s(r[7]); // H - LOCALE o LAN
+    const match_id=s(r[8]); // I - Codice univoco match
+    const cron=r[9]!==''&&r[9]!=null&&String(r[9]).trim()!==''?n(r[9]):null; // J
+    const nome_match=s(r[10]); // K
+    // L (11) non usata
+    const torneoLinkName=s(r[12]); // M - nome torneo (tabella link)
+    const torneoLink=s(r[13]); // N - link torneo
+    const torneoLinkAnno=s(r[14]); // O - anno torneo (tabella link)
+    // P (15) non usata
+    const mappaTrofeoName=s(r[16]); // Q - nome mappa (tabella trofei)
+    const mappaTrofeo=s(r[17]); // R - trofeo corrispondente
+    // S (18) non usata
+    const profPilota=s(r[19]); // T - pilota (tabella profili)
+    const personaggio=s(r[20]); // U
+    const veicolo=s(r[21]); // V
+    const mappa1=s(r[22]); // W
+    const mappa2=s(r[23]); // X
+    const derapata=s(r[24]); // Y
+    const foto_profilo=s(r[25]); // Z
+    
+    // --- Tabella link tornei (M,N,O) ---
+    if(torneoLinkName){
+      torneo_links[torneoLinkName]={link:torneoLink||null, anno:torneoLinkAnno||null};
+    }
+    
+    // --- Tabella mappa/trofeo (Q,R) ---
+    if(mappaTrofeoName&&!bad.has(mappaTrofeoName)){
+      mapInfo[mappaTrofeoName]={trofeo:mappaTrofeo||'ALTRO',foto:''};
+    }
+    
+    // --- Tabella profilo giocatore (T-Z) ---
+    if(profPilota){
+      if(!playerProfiles[profPilota]) playerProfiles[profPilota]={personaggio,veicolo,mappa1,mappa2,derapata,foto_profilo};
+      else{
+        const pp=playerProfiles[profPilota];
+        if(personaggio&&!pp.personaggio)pp.personaggio=personaggio;
+        if(veicolo&&!pp.veicolo)pp.veicolo=veicolo;
+        if(mappa1&&!pp.mappa1)pp.mappa1=mappa1;
+        if(mappa2&&!pp.mappa2)pp.mappa2=mappa2;
+        if(derapata&&!pp.derapata)pp.derapata=derapata;
+        if(foto_profilo&&!pp.foto_profilo)pp.foto_profilo=foto_profilo;
+      }
+    }
+    
+    // --- Tabella Punti Torneo 2026/27 (AB-AH / 27-33) ---
+    const pilotaPts = s(r[27]);
+    if(pilotaPts){
+      const posPts = s(r[28]);
+      const puntiPiazz = n(r[29]);
+      const bonusRaw = s(r[30]);
+      const bonusList = bonusRaw ? bonusRaw.split('//').map(b=>b.trim()).filter(Boolean) : [];
+      const puntiBonus = n(r[31]);
+      const dataVal = r[32];
+      const parsedDate = parseTournamentDate(dataVal);
+      const nomeTorneo = s(r[33]) || (rows[0] && s(rows[0][33])) || 'Torneo';
+      const isExp = isTournamentExpired(parsedDate);
+      const expDate = parsedDate ? new Date(new Date(parsedDate).setFullYear(parsedDate.getFullYear()+1)) : null;
+
+      tournamentEntries.push({
+        pilota: pilotaPts,
+        pos: posPts,
+        puntiPiazzamento: puntiPiazz,
+        bonusRaw: bonusRaw,
+        bonusList: bonusList,
+        puntiBonus: puntiBonus,
+        date: parsedDate,
+        dateStr: formatTournamentDate(parsedDate),
+        torneo: nomeTorneo,
+        isExpired: isExp,
+        expiryDate: expDate
+      });
+    }
+
+    // --- Dati match (riga per pilota) ---
+    if(!pilota||!mappa||!match_id) continue;
+    
+    // Aggregate this player's data into the match
+    if(!matchData[match_id]){
+      matchData[match_id]={players:{},playerElo:{},mappa,anno,torneo,cron,nome_match,tipo_match,diff:difficolta};
+    }
+    matchData[match_id].players[pilota]=pos;
+    matchData[match_id].playerElo[pilota]=elo;
+    
+    // ELO timeline (globale, non filtrato per tipo match)
     if(cron!=null&&elo>0){
-      if(!eloTL[conc])eloTL[conc]={};
-      if(!eloTL[conc][cron])eloTL[conc][cron]={elo,match,torneo:tornN,anno};
+      if(!eloTL[pilota])eloTL[pilota]={};
+      if(!eloTL[pilota][cron])eloTL[pilota][cron]={elo,match:nome_match,torneo,anno,tipo_match};
     }
-    if(cron!=null&&match) cronLabels[cron]=match;
-    if(mapU&&!bad.has(mapU)&&!mapInfo[mapU]) mapInfo[mapU]={trofeo:mapTrofeo,foto:''};
-    // Player profile (first occurrence per player)
-    const pk=pilota||conc;
-    if(pk&&!playerProfiles[pk]) playerProfiles[pk]={personaggio,veicolo,mappa1,mappa2,derapata,foto_profilo};
-    // Update foto_profilo if a later row has it and earlier didn't
-    else if(pk&&foto_profilo&&!playerProfiles[pk].foto_profilo) playerProfiles[pk].foto_profilo=foto_profilo;
-    // torneoStats per player
-    if(tornN){
-      if(!torneoStatsMap[conc]) torneoStatsMap[conc]={};
-      if(!torneoStatsMap[conc][tornN]) torneoStatsMap[conc][tornN]={gare:0,wins:0,posSum:0};
+    
+    // Cron labels
+    if(cron!=null&&nome_match) cronLabels[cron]=nome_match;
+    
+    // Traccia l'ultima riga in cui appare ogni torneo (per ordinamento cartelle)
+    if(torneo) torneoLastRow[torneo]=i;
+    
+    // Torneo stats
+    if(torneo){
+      if(!torneoStatsMap[pilota]) torneoStatsMap[pilota]={};
+      if(!torneoStatsMap[pilota][torneo]) torneoStatsMap[pilota][torneo]={gare:0,wins:0,posSum:0};
     }
-    // Build race — key uses sorted players+positions to deduplicate robustly
-    const players={[conc]:posC};
-    if(sf1)players[sf1]=p1; if(sf2)players[sf2]=p2; if(sf3)players[sf3]=p3;
-    const playersKey=Object.entries(players).sort((a,b)=>a[0]<b[0]?-1:1).map(([n,p])=>n+':'+p).join('|');
-    const key=[tornN,anno,mappa,playersKey].join('||');
-    if(!racesDict[key]) racesDict[key]={mappa,anno,partita,diff,torneo:tornN,cron,nome_match:match,players:{}};
-    for(const[pn,pp]of Object.entries(players)) if(!(pn in racesDict[key].players)) racesDict[key].players[pn]=pp;
+  }
+  
+  // Convert matchData to races
+  for(const[mid, data] of Object.entries(matchData)){
+    const playersKey=Object.entries(data.players).sort((a,b)=>a[0]<b[0]?-1:1).map(([n,p])=>n+':'+p).join('|');
+    const key=[data.torneo,data.anno,data.mappa,playersKey].join('||');
+    if(!racesDict[key]){
+      racesDict[key]={
+        mappa:data.mappa,
+        anno:data.anno,
+        partita:0,
+        diff:data.diff,
+        torneo:data.torneo,
+        cron:data.cron,
+        nome_match:data.nome_match,
+        tipo_match:data.tipo_match,
+        match_id:mid,
+        players:{},
+        playerElo:{}
+      };
+    }
+    Object.assign(racesDict[key].players, data.players);
+    Object.assign(racesDict[key].playerElo, data.playerElo);
   }
   const races=Object.values(racesDict);
   const pstats={};
@@ -646,7 +1104,8 @@ function parseRows(rows){
     return{cron,label:cronLabels[cron],anno:annoC,torneo:torneoC,elo:{...curElo}};
   });
   return{races,players,torneo_links,map_stats:Object.values(mapStatsD),trophy_info:trophyInfo,
-    cron_labels:cronLabels,timeline_frames,player_profiles:playerProfiles};
+    cron_labels:cronLabels,timeline_frames,player_profiles:playerProfiles,torneo_last_row:torneoLastRow,
+    tournaments:tournamentEntries};
 }
 
 function loadFromData(data){
@@ -659,11 +1118,28 @@ function loadFromData(data){
     PLAYERS[p.name]=p;
   }
   TORNEO_LINKS=data.torneo_links||{};
+  TORNEO_LAST_ROW=data.torneo_last_row||{};
   MAP_STATS=data.map_stats||[];
   TROPHY_INFO=data.trophy_info||{};
   CRON_LABELS=data.cron_labels||{};
   TIMELINE_FRAMES=data.timeline_frames||[];
   PLAYER_PROFILES=data.player_profiles||{};
+
+  TOURNAMENT_ROWS=data.tournaments||[];
+  PLAYER_TOURNAMENTS={};
+  for(const t of TOURNAMENT_ROWS){
+    if(!PLAYER_TOURNAMENTS[t.pilota]) PLAYER_TOURNAMENTS[t.pilota]=[];
+    PLAYER_TOURNAMENTS[t.pilota].push(t);
+    if(!PLAYERS[t.pilota]){
+      PLAYERS[t.pilota] = {
+        name: t.pilota,
+        gare: 0, wins: 0, posSum: 0, avgPos: 0, winPct: 0,
+        positions: new Array(13).fill(0),
+        opponents: {}, history: [], eloTimeline: [], torneoStats: {}
+      };
+    }
+  }
+  initColumnVisibility();
   // Inject embedded images
   CHAR_IMGS=EMB_IMGS.chars||{};
   VEHICLE_IMGS=EMB_IMGS.vehicles||{};
@@ -684,8 +1160,29 @@ function loadFromData(data){
 // ============================================================
 // FILTERS
 // ============================================================
+function getActiveMatchTypeFilter(){
+  const activeSection=document.querySelector('.section.active');
+  if(!activeSection) return 'TUTTE';
+  const sectionId=activeSection.id;
+  let selectId='';
+  if(sectionId==='classifica') selectId='class-match-type';
+  else if(sectionId==='giocatore') selectId='player-match-type';
+  else if(sectionId==='h2h') selectId='h2h-match-type';
+  else if(sectionId==='ranking') selectId='rk-match-type';
+  else if(sectionId==='mappe') selectId='map-match-type';
+  
+  const select=document.getElementById(selectId);
+  return select?select.value:'TUTTE';
+}
+
+function getFilteredRaces(){
+  const typeFilter=getActiveMatchTypeFilter();
+  if(typeFilter==='TUTTE') return RACES;
+  return RACES.filter(r=>r.tipo_match===typeFilter);
+}
+
 function torneiPerAnno(anno){
-  const src=RACES.filter(r=>!anno||r.anno==anno);
+  const src=getFilteredRaces().filter(r=>!anno||r.anno==anno);
   return [...new Set(src.map(r=>r.torneo).filter(Boolean))].sort();
 }
 
@@ -701,7 +1198,7 @@ function updateTorneiSel(torneoSelId, anno, currentVal){
 }
 
 function populateFilters(){
-  const anni=[...new Set(RACES.map(r=>r.anno))].sort().reverse();
+  const anni=[...new Set(getFilteredRaces().map(r=>r.anno))].sort().reverse();
   const tornei=torneiPerAnno('');
 
   // Classifica
@@ -934,6 +1431,14 @@ function setBeloMode(m){
 
 // Info popup texts
 const INFO_TEXTS={
+  pts:{
+    title:'🎾 Classifica Punti Torneo 2026/27',
+    body:`La classifica a punti funziona con un sistema di ranking annuale (simile al circuito ATP di tennis):<br><br>
+<b>Punteggio:</b> si sommano i <b>5 migliori punteggi</b> ottenuti dai piazzamenti nei tornei dell'anno, più <b>tutti i punti bonus</b> accumulati.<br><br>
+<b>Scadenza a 1 anno:</b> i punti guadagnati in qualsiasi torneo scadono esattamente dopo <b>1 anno (365 giorni)</b> dalla data in cui sono stati ottenuti (es. i punti del 26/09/2026 si azzereranno dal 26/09/2027).<br><br>
+<b>Bonus multipli:</b> se un giocatore vince più bonus nello stesso torneo (es. VINCITORE GIRONE e CAPOCANNONIERE) vengono sommati tutti.<br><br>
+<b>Difesa dei punti:</b> i piloti dovranno difendere o migliorare il proprio piazzamento di anno in anno per conservare la propria posizione in classifica.`
+  },
   elo:{
     title:'🏆 Come funziona il ranking ELO?',
     body:`Il ranking ELO misura la <b>skill reale</b> di ogni pilota nel tempo.<br><br>
@@ -983,10 +1488,11 @@ function getBestElo(player, mode){
   const tl=player.eloTimeline||[];
   if(!tl.length) return null;
   if(mode==='all') return Math.max(...tl.map(p=>p.elo));
-  // Official: last entry per torneo
+  // Ufficiale: ultimo valore registrato per ciascun torneo (raggruppato per torneo+anno,
+  // per evitare che tornei con lo stesso nome in anni diversi vengano uniti)
   const byTorneo={};
   for(const pt of tl){
-    const t=pt.torneo||'__none__';
+    const t=(pt.torneo||'__none__')+'||'+(pt.anno||'');
     if(!byTorneo[t]||pt.cron>byTorneo[t].cron) byTorneo[t]={cron:pt.cron,elo:pt.elo};
   }
   const officialVals=Object.values(byTorneo).map(v=>v.elo);
@@ -994,17 +1500,19 @@ function getBestElo(player, mode){
 }
 
 // Best official ranking position ever: {pos, total} or null
-function getBestRank(playerName){
+// statsMap: mappa {playerName: {eloTimeline}} da usare (default PLAYERS = globale)
+function getBestRank(playerName, statsMap){
+  const src=statsMap||PLAYERS;
   const torneoElo={};
-  for(const[pn,pl] of Object.entries(PLAYERS)){
+  for(const[pn,pl] of Object.entries(src)){
     for(const pt of (pl.eloTimeline||[])){
-      const t=pt.torneo||'__none__';
+      const t=(pt.torneo||'__none__')+'||'+(pt.anno||'');
       if(!torneoElo[t])torneoElo[t]={};
       if(!torneoElo[t][pn]||pt.cron>torneoElo[t][pn].cron) torneoElo[t][pn]={elo:pt.elo,cron:pt.cron};
     }
   }
   const order=Object.entries(torneoElo)
-    .filter(([t])=>t!=='__none__')
+    .filter(([t])=>!t.startsWith('__none__||'))
     .map(([t,m])=>({t,maxCron:Math.max(...Object.values(m).map(v=>v.cron))}))
     .sort((a,b)=>a.maxCron-b.maxCron);
   let cum={},bestPos=null,bestTotal=null;
@@ -1019,16 +1527,18 @@ function getBestRank(playerName){
   return bestPos===null?null:{pos:bestPos,total:bestTotal};
 }
 
-// Rank deltas — always based on global ELO order, never affected by current sort
-function getRankDeltas(){
-  const sorted=Object.values(PLAYERS).filter(x=>x.lastRk).sort((a,b)=>b.lastRk-a.lastRk);
+// Rank deltas — basato sull'ordine ELO più recente vs il torneo precedente
+// statsMap: mappa {playerName: {lastRk, eloTimeline}} da usare (default PLAYERS = globale)
+function getRankDeltas(statsMap){
+  const src=statsMap||PLAYERS;
+  const sorted=Object.values(src).filter(x=>x.lastRk).sort((a,b)=>b.lastRk-a.lastRk);
   let lastTorneo=null,maxCron=-Infinity;
-  for(const p of Object.values(PLAYERS))
+  for(const p of Object.values(src))
     for(const pt of (p.eloTimeline||[]))
       if(pt.cron>maxCron&&pt.torneo){maxCron=pt.cron;lastTorneo=pt.torneo;}
   if(!lastTorneo) return {};
   const preElo={};
-  for(const p of Object.values(PLAYERS)){
+  for(const p of Object.values(src)){
     const tl=(p.eloTimeline||[]).filter(pt=>pt.torneo!==lastTorneo);
     if(tl.length) preElo[p.name]=tl[tl.length-1].elo;
   }
@@ -1056,32 +1566,48 @@ function thSort(f){
   document.getElementById('sort-sel').value=f;
   renderClass();
 }
+function buildFilteredPlayerStats(racesArr){
+  const pf={};
+  for(const race of racesArr){
+    for(const[pn,pp]of Object.entries(race.players)){
+      if(!pf[pn])pf[pn]={name:pn,gare:0,wins:0,posSum:0,eloTimeline:[]};
+      pf[pn].gare++;pf[pn].posSum+=pp;if(pp===1)pf[pn].wins++;
+      const eloVal=race.playerElo?race.playerElo[pn]:null;
+      if(race.cron!=null&&eloVal>0){
+        pf[pn].eloTimeline.push({cron:race.cron,elo:eloVal,torneo:race.torneo,anno:race.anno,match:race.nome_match});
+      }
+    }
+  }
+  for(const p of Object.values(pf)){
+    p.avgPos=p.gare>0?p.posSum/p.gare:0;
+    p.winPct=p.gare>0?p.wins/p.gare:0;
+    p.eloTimeline.sort((a,b)=>a.cron-b.cron);
+    // lastRk = l'ULTIMO valore ELO cronologico all'interno del subset filtrato
+    p.lastRk=p.eloTimeline.length?p.eloTimeline[p.eloTimeline.length-1].elo:1000;
+  }
+  return pf;
+}
 function getFilteredStats(){
   const aF=document.getElementById('anno-sel').value,tF=document.getElementById('torn-sel').value;
-  if(!aF&&!tF)return PLAYERS;
-  const fr=RACES.filter(r=>(!aF||r.anno==aF)&&(!tF||r.torneo===tF));
-  const pf={};
-  for(const race of fr){for(const[pn,pp]of Object.entries(race.players)){
-    if(!pf[pn])pf[pn]={name:pn,gare:0,wins:0,posSum:0,lastRk:PLAYERS[pn]?.lastRk||1000};
-    pf[pn].gare++;pf[pn].posSum+=pp;if(pp===1)pf[pn].wins++;
-  }}
-  for(const s of Object.values(pf)){s.avgPos=s.gare>0?s.posSum/s.gare:0;s.winPct=s.gare>0?s.wins/s.gare:0;}
-  return pf;
+  const allRaces=getFilteredRaces(); // già rispetta il filtro tipo match della sezione attiva
+  const fr=allRaces.filter(r=>(!aF||r.anno==aF)&&(!tF||r.torneo===tF));
+  return buildFilteredPlayerStats(fr);
 }
 function renderClass(){
   const f=document.getElementById('sort-sel').value,mg=parseInt(document.getElementById('ming-sel').value)||0;
   sortField=f;
-  ['gare','wins','winpct','avgpos','rk','var','bestelo','bestrank'].forEach(x=>{
+  ['gare','wins','winpct','avgpos','rk','pts','var','bestelo','bestrank'].forEach(x=>{
     const el=document.getElementById('th-'+x);
-    if(el) el.className=sortField===x?(sortDir===1?'sa':'sd'):'';
+    if(el) el.className=el.className.split(' ').filter(c=>c!=='sa'&&c!=='sd').join(' ') + (sortField===x?(sortDir===1?' sa':' sd'):'');
   });
   const pm=getFilteredStats();
   let pl=Object.values(pm).filter(p=>p.gare>=mg);
-  // Deltas computed once from global ELO order — not affected by sort
-  const deltas=getRankDeltas();
+  // Deltas e best-rank calcolati sul set FILTRATO (rispetta anno/torneo/tipo match della sezione)
+  const deltas=getRankDeltas(pm);
   pl.sort((a,b)=>{
     let va,vb;
     if(f==='rk'){va=a.lastRk;vb=b.lastRk;}
+    else if(f==='pts'){va=getPlayerTournamentStats(a.name).totalPts;vb=getPlayerTournamentStats(b.name).totalPts;}
     else if(f==='wins'){va=a.wins;vb=b.wins;}
     else if(f==='winpct'){va=a.winPct;vb=b.winPct;}
     else if(f==='avgpos'){va=a.avgPos;vb=b.avgPos;}
@@ -1092,10 +1618,10 @@ function renderClass(){
       if(va===null) return 1; if(vb===null) return -1;
       return (va-vb)*sortDir;
     } else if(f==='bestelo'){
-      va=getBestElo(PLAYERS[a.name]||a,beloMode)??-Infinity;
-      vb=getBestElo(PLAYERS[b.name]||b,beloMode)??-Infinity;
+      va=getBestElo(a,beloMode)??-Infinity;
+      vb=getBestElo(b,beloMode)??-Infinity;
     } else if(f==='bestrank'){
-      const ra=getBestRank(a.name),rb=getBestRank(b.name);
+      const ra=getBestRank(a.name,pm),rb=getBestRank(b.name,pm);
       va=ra?ra.pos:9999; vb=rb?rb.pos:9999;
     } else{va=a.lastRk;vb=b.lastRk;}
     return (va-vb)*sortDir;
@@ -1104,23 +1630,26 @@ function renderClass(){
   pl.forEach((p,i)=>{
     const pct=Math.round((p.winPct||0)*100),rc=i===0?'r1':i===1?'r2':i===2?'r3':'';
     const elo=Math.round(p.lastRk||1000),ec=elo>=1200?'bg':elo>=1050?'by':elo>=950?'bm':'br';
-    const fullP=PLAYERS[p.name]||p;
-    const bestElo=getBestElo(fullP,beloMode);
+    const bestElo=getBestElo(p,beloMode);
     const bestEloHtml=bestElo!==null?`<span class="badge by" style="font-size:.8rem;padding:.12rem .55rem">${Math.round(bestElo)}</span>`:'<span style="color:var(--muted)">—</span>';
     const deltaD=deltas[p.name]||{};
-    const br=getBestRank(p.name);
+    const br=getBestRank(p.name,pm);
     const brHtml=br?`<span style="font-family:'Orbitron',monospace;font-size:.75rem;font-weight:700;color:var(--yellow)">${br.pos}</span><span style="color:var(--muted);font-size:.7rem"> / ${br.total}</span>`:'<span style="color:var(--muted)">—</span>';
+    const tStats=getPlayerTournamentStats(p.name);
     tb.innerHTML+=`<tr>
       <td><span class="rn ${rc}">${i+1}</span></td>
-      <td><span class="pl" onclick="openPlayer('${p.name}')">${p.name}</span></td>
-      <td>${p.gare}</td><td>${p.wins}</td>
-      <td><div class="sbw"><div class="sb"><div class="sbf" style="width:${pct}%"></div></div><span>${pct}%</span></div></td>
-      <td>${(p.avgPos||0).toFixed(2)}</td>
-      <td><span class="badge ${ec}" style="font-size:.85rem;padding:.15rem .65rem">${elo}</span></td>
-      <td>${mkDeltaBadge(deltaD.delta)}</td>
-      <td>${bestEloHtml}</td>
-      <td>${brHtml}</td></tr>`;
+      <td><span class="pl" onclick="openPlayer('${p.name.replace(/'/g,"\'")}');">${p.name}</span></td>
+      <td class="col-gare">${p.gare}</td>
+      <td class="col-wins">${p.wins}</td>
+      <td class="col-winpct"><div class="sbw"><div class="sb"><div class="sbf" style="width:${pct}%"></div></div><span>${pct}%</span></div></td>
+      <td class="col-avgpos">${(p.avgPos||0).toFixed(2)}</td>
+      <td class="col-rk"><span class="badge ${ec}" style="font-size:.85rem;padding:.15rem .65rem">${elo}</span></td>
+      <td class="col-pts"><span class="badge by" style="font-family:'Orbitron',monospace;font-size:.85rem;padding:.15rem .6rem;font-weight:700">${tStats.totalPts}</span></td>
+      <td class="col-var">${mkDeltaBadge(deltaD.delta)}</td>
+      <td class="col-bestelo">${bestEloHtml}</td>
+      <td class="col-bestrank">${brHtml}</td></tr>`;
   });
+  applyColumnVisibility();
 }
 
 // ============================================================
@@ -1136,7 +1665,7 @@ function renderPlayer(){
   const aF=document.getElementById('p-anno-sel')?.value||'';
   const tF=document.getElementById('p-torneo-sel')?.value||'';
   const isFiltered=!!(aF||tF);
-  const filtRaces=RACES.filter(r=>
+  const filtRaces=getFilteredRaces().filter(r=>
     (name in r.players)&&
     (!aF||r.anno==aF)&&
     (!tF||r.torneo===tF)
@@ -1288,6 +1817,188 @@ function renderPlayer(){
   const bestEloUffHtml=bestEloUff!==null?`<span style="font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:700;color:var(--yellow)">${Math.round(bestEloUff)}</span>`:'—';
   const bestEloAllHtml=bestEloAll!==null?`<span style="font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:700;color:var(--yellow)">${Math.round(bestEloAll)}</span>`:'—';
 
+  const tStats = getPlayerTournamentStats(name);
+  let ptsCardHtml = '';
+  let palmaresCardHtml = '';
+
+  if (tStats.allTourneys.length > 0) {
+    let top5Rows = '';
+    tStats.validTourneys.forEach((t, idx) => {
+      const isTop5 = idx < 5;
+      const badgeCls = isTop5 ? 'bg' : 'bm';
+      const badgeTxt = isTop5 ? `Top 5 (#${idx+1})` : 'Scartato (oltre Top 5)';
+      top5Rows += `<div class="hr" style="flex-wrap:wrap;gap:.4rem">
+        <div style="flex:1;min-width:140px">
+          <div style="font-weight:600;font-size:.85rem">${t.torneo}</div>
+          <div style="color:var(--muted);font-size:.72rem">📅 ${t.dateStr} · Piazzamento: <strong style="color:var(--yellow)">${t.pos}</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <span class="badge ${badgeCls}">${badgeTxt}</span>
+          <span style="font-family:'Orbitron',monospace;font-weight:700;font-size:.88rem;color:${isTop5?'var(--yellow)':'var(--muted)'}">+${t.puntiPiazzamento} pt</span>
+        </div>
+      </div>`;
+    });
+
+    const expiredTourneys = tStats.allTourneys.filter(t => t.isExpired);
+    let expiredRows = '';
+    expiredTourneys.forEach(t => {
+      expiredRows += `<div class="hr" style="flex-wrap:wrap;gap:.4rem;opacity:.65">
+        <div style="flex:1;min-width:140px">
+          <div style="font-weight:600;font-size:.85rem">${t.torneo}</div>
+          <div style="color:var(--muted);font-size:.72rem">📅 ${t.dateStr} · Piazzamento: ${t.pos}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <span class="badge br">Scaduto (>1 anno)</span>
+          <span style="font-family:'Orbitron',monospace;font-size:.85rem;color:var(--muted)">0 pt</span>
+        </div>
+      </div>`;
+    });
+
+    let bonusItems = '';
+    if (tStats.validBonuses.length > 0) {
+      bonusItems = tStats.validBonuses.map(b => `
+        <div class="hr" style="flex-wrap:wrap;gap:.4rem">
+          <div style="flex:1">
+            <span style="font-weight:700;color:var(--yellow)">🎁 //${b.bonus}</span>
+            <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem">(${b.torneo} · ${b.dateStr})</span>
+          </div>
+          <span class="badge by" style="font-family:'Orbitron',monospace;font-size:.8rem">+${b.pt} pt</span>
+        </div>
+      `).join('');
+    } else {
+      bonusItems = '<div style="color:var(--muted);font-size:.8rem;padding:.4rem 0">Nessun bonus accumulato finora.</div>';
+    }
+
+    ptsCardHtml = `
+      <div class="card" style="border-color:rgba(255,217,0,.3);background:linear-gradient(180deg,rgba(255,217,0,.04) 0%,var(--card) 100%)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem">
+          <div class="card-title" style="color:var(--yellow);margin-bottom:0">🎾 Punti Classifica 2026/27 (Race Annuale)</div>
+          <button class="info-btn" onclick="showInfo('pts')">?</button>
+        </div>
+        <div class="sg" style="margin-bottom:1rem">
+          <div class="sb2">
+            <div class="pts-box-val">${tStats.totalPts}</div>
+            <div class="sl">Punti Totali</div>
+          </div>
+          <div class="sb2">
+            <div class="sv" style="color:#4da6ff">${tStats.top5Pts}</div>
+            <div class="sl">Top 5 Piazzamenti</div>
+          </div>
+          <div class="sb2">
+            <div class="sv" style="color:var(--green)">+${tStats.bonusPts}</div>
+            <div class="sl">Punti Bonus</div>
+          </div>
+          <div class="sb2">
+            <div class="sv" style="color:var(--text)">${tStats.validTourneys.length}</div>
+            <div class="sl">Tornei Validi (365 gg)</div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:.8rem;margin-top:.5rem">
+          <div style="font-family:'Orbitron',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">
+            📊 Piazzamenti dell'anno (Migliori 5 conteggiati)
+          </div>
+          ${top5Rows || '<div style="color:var(--muted);font-size:.8rem">Nessun torneo valido registrato.</div>'}
+          ${expiredRows}
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:.8rem;margin-top:.8rem">
+          <div style="font-family:'Orbitron',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">
+            🎁 Bonus e Premi dell'anno
+          </div>
+          ${bonusItems}
+        </div>
+      </div>
+    `;
+
+    let tourneyRows = '';
+    tStats.allTourneys.forEach((t, idx) => {
+      const posUpper = String(t.pos).toUpperCase();
+      let posBadge = 'bm';
+      let icon = '🏁';
+      if (posUpper.includes('1') || posUpper === '1°') { posBadge = 'by'; icon = '🥇'; }
+      else if (posUpper.includes('2') || posUpper === '2°') { posBadge = 'bm'; icon = '🥈'; }
+      else if (posUpper.includes('3') || posUpper === '3°') { posBadge = 'br'; icon = '🥉'; }
+      else if (posUpper.includes('SEMI')) { posBadge = 'bb'; icon = '🎖️'; }
+      else if (posUpper.includes('QUART')) { posBadge = 'bp'; icon = '🎖️'; }
+
+      const hasBonus = t.bonusList && t.bonusList.length > 0;
+      const bonusBadge = hasBonus
+        ? `<span class="badge by" style="font-size:.7rem">🎁 ${t.bonusList.length} bonus (+${t.puntiBonus} pt)</span>`
+        : `<span style="color:var(--muted);font-size:.72rem">Nessun bonus</span>`;
+
+      let bonusDetailContent = '';
+      if (hasBonus) {
+        bonusDetailContent = t.bonusList.map(b => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.04)">
+            <span style="font-weight:700;color:var(--yellow)">✨ //${b}</span>
+            <span class="badge by">+${t.puntiBonus} pt</span>
+          </div>
+        `).join('');
+      } else {
+        bonusDetailContent = '<div style="color:var(--muted);font-style:italic">Nessun bonus ottenuto in questo torneo.</div>';
+      }
+
+      const expiryStr = t.expiryDate ? formatTournamentDate(t.expiryDate) : '—';
+      const statusBadge = t.isExpired
+        ? `<span class="badge br">Scaduto il ${expiryStr}</span>`
+        : `<span class="badge bg">Valido fino al ${expiryStr}</span>`;
+
+      tourneyRows += `
+        <div class="palmares-row" onclick="togglePalmaresDetail(${idx})">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+            <div style="display:flex;align-items:center;gap:.7rem">
+              <span style="font-size:1.3rem">${icon}</span>
+              <div>
+                <div style="font-family:'Orbitron',monospace;font-weight:700;font-size:.88rem;color:var(--text)">${t.torneo}</div>
+                <div style="color:var(--muted);font-size:.72rem">📅 ${t.dateStr}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+              <span class="badge ${posBadge}" style="font-size:.78rem;padding:.2rem .6rem">${t.pos}</span>
+              <span style="font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;color:var(--yellow)">${t.puntiPiazzamento} pt</span>
+              ${bonusBadge}
+              <span id="pal-arrow-${idx}" style="font-size:.75rem;color:var(--muted);transition:transform .2s">▼</span>
+            </div>
+          </div>
+          <div id="pal-detail-${idx}" class="palmares-detail" style="display:none" onclick="event.stopPropagation()">
+            <div style="font-weight:700;font-size:.78rem;color:var(--yellow);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">
+              Dettagli Torneo e Bonus
+            </div>
+            <div style="margin-bottom:.5rem">${bonusDetailContent}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06);padding-top:.4rem;margin-top:.4rem;font-size:.75rem">
+              <span style="color:var(--muted)">Stato punti classifica 2026/27:</span>
+              ${statusBadge}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    palmaresCardHtml = `
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem">
+          <div class="card-title" style="margin-bottom:0">🏆 Palmarès & Risultati Tornei (${tStats.allTourneys.length})</div>
+          <span style="font-size:.72rem;color:var(--muted)">Clicca su un torneo per vedere i bonus ▾</span>
+        </div>
+        ${tourneyRows}
+      </div>
+    `;
+  } else {
+    ptsCardHtml = `
+      <div class="card" style="border-color:rgba(255,217,0,.2)">
+        <div class="card-title" style="color:var(--yellow)">🎾 Punti Classifica 2026/27</div>
+        <div style="text-align:center;color:var(--muted);padding:.8rem;font-size:.84rem">Nessun torneo disputato nel campionato 2026/27.</div>
+      </div>
+    `;
+    palmaresCardHtml = `
+      <div class="card">
+        <div class="card-title">🏆 Palmarès & Risultati Tornei</div>
+        <div style="text-align:center;color:var(--muted);padding:.8rem;font-size:.84rem">Nessun torneo registrato per questo pilota.</div>
+      </div>
+    `;
+  }
+
   const showAll=hist.length>INIT;
   el.innerHTML=`<button class="back-btn" onclick="goNav('classifica')">← Classifica</button>
     ${filterNote}
@@ -1325,6 +2036,8 @@ function renderPlayer(){
       <div class="sb2"><div class="sv">${fGare}</div><div class="sl">Gare Tot.</div></div>
       <div class="sb2"><div class="sv">${podi}</div><div class="sl">🏅 Podi</div></div>
     </div>
+    ${ptsCardHtml}
+    ${palmaresCardHtml}
     <div class="card"><div class="card-title">📊 Distribuzione Posizioni</div>${posH}</div>
     <div class="card"><div class="card-title">⚔️ Record vs Avversari (${opps.length} piloti affrontati)</div>
       <div id="opps-list">${mkOpp(opps.slice(0,OPPS_INIT))}</div>
@@ -1388,7 +2101,7 @@ function showAllPMaps(){
 function h2hFilteredRaces(){
   const aF=document.getElementById('h2h-anno-sel')?.value||'';
   const tF=document.getElementById('h2h-torneo-sel')?.value||'';
-  return RACES.filter(r=>(!aF||r.anno==aF)&&(!tF||r.torneo===tF));
+  return getFilteredRaces().filter(r=>(!aF||r.anno==aF)&&(!tF||r.torneo===tF));
 }
 function commonRaces(sel){return h2hFilteredRaces().filter(r=>sel.every(p=>p in r.players));}
 function oppList(sel){
@@ -1556,11 +2269,24 @@ function renderH2H(){
   genHtml+='</tr>';
 
   // Best Rank row
-  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted)">🏅 Best Rank <button class="info-btn" onclick="showInfo('bestrank')">?</button></td>`;
+  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.04)">🏅 Best Rank <button class="info-btn" onclick="showInfo('bestrank')">?</button></td>`;
   sel.forEach(n=>{
     const br=getBestRank(n);
     const brHtml=br?`<span style="font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;color:var(--yellow)">${br.pos}</span><span style="color:var(--muted);font-size:.75rem"> / ${br.total}</span>`:'<span style="color:var(--muted)">—</span>';
-    genHtml+=`<td style="text-align:center;padding:.38rem .5rem">${brHtml}</td>`;
+    genHtml+=`<td style="text-align:center;padding:.38rem .5rem;border-bottom:1px solid rgba(255,255,255,.04)">${brHtml}</td>`;
+  });
+  genHtml+='</tr>';
+
+  // Punti Classifica 2026/27 row
+  const h2hPtsVals = sel.map(n => getPlayerTournamentStats(n).totalPts);
+  const bestH2HPts = Math.max(...h2hPtsVals);
+  genHtml+=`<tr><td style="padding:.38rem .5rem;color:var(--muted)">🎾 Punti Classifica 2026/27 <button class="info-btn" onclick="showInfo('pts')">?</button></td>`;
+  sel.forEach(n=>{
+    const pPts = getPlayerTournamentStats(n).totalPts;
+    const isBest = pPts === bestH2HPts && bestH2HPts > 0;
+    genHtml+=`<td style="text-align:center;padding:.38rem .5rem">
+      <span class="badge ${isBest?'by':'bm'}" style="font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;padding:.15rem .6rem">${pPts} pt</span>
+    </td>`;
   });
   genHtml+='</tr>';
 
@@ -1640,7 +2366,71 @@ function renderH2H(){
         <div class="card-title">📋 Ultime sfide dirette</div>${recHFirst}${extraBlock}</div></div>`;
   }
 
-  el.innerHTML=genHtml+h2hCardHtml;
+  // Common tournaments comparison
+  const tourneyMap = {};
+  for(const t of TOURNAMENT_ROWS){
+    if(!sel.includes(t.pilota)) continue;
+    const key = (t.torneo||'') + '||' + (t.dateStr||'');
+    if(!tourneyMap[key]) tourneyMap[key] = { torneo: t.torneo, date: t.date, dateStr: t.dateStr, players: {} };
+    tourneyMap[key].players[t.pilota] = t;
+  }
+  const commonTourneys = Object.values(tourneyMap)
+    .filter(item => Object.keys(item.players).length >= Math.min(2, sel.length))
+    .sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
+
+  let tourneyH2HCard = '';
+  if(commonTourneys.length > 0){
+    let ctRows = '';
+    commonTourneys.forEach(ct => {
+      let maxTourneyPts = -1;
+      Object.values(ct.players).forEach(pObj => {
+        if(pObj.puntiPiazzamento > maxTourneyPts) maxTourneyPts = pObj.puntiPiazzamento;
+      });
+
+      const pBadges = sel.map(n => {
+        const pObj = ct.players[n];
+        if(!pObj) return `<div style="text-align:center;flex:1;min-width:110px;padding:.5rem;background:rgba(255,255,255,.02);border-radius:.4rem;border:1px solid var(--border)"><strong style="font-size:.82rem">${n}</strong><div style="color:var(--muted);font-size:.72rem;margin-top:.2rem">Non ha partecipato</div></div>`;
+        const isWinner = pObj.puntiPiazzamento === maxTourneyPts && maxTourneyPts > 0;
+        const bList = pObj.bonusList && pObj.bonusList.length ? `<div style="font-size:.7rem;color:var(--yellow);margin-top:.3rem">🎁 //${pObj.bonusList.join(' //')} (+${pObj.puntiBonus} pt)</div>` : '';
+        return `
+          <div style="text-align:center;flex:1;min-width:110px;padding:.6rem .4rem;background:${isWinner?'rgba(255,217,0,.08)':'rgba(255,255,255,.02)'};border:1px solid ${isWinner?'var(--yellow)':'var(--border)'};border-radius:.5rem">
+            <div style="font-weight:700;font-size:.84rem;color:${isWinner?'var(--yellow)':'var(--text)'}">${n} ${isWinner?'👑':''}</div>
+            <div style="margin:.3rem 0"><span class="badge ${isWinner?'by':'bb'}">${pObj.pos}</span></div>
+            <div style="font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;color:var(--yellow)">${pObj.puntiPiazzamento} pt</div>
+            ${bList}
+          </div>
+        `;
+      }).join('');
+
+      ctRows += `
+        <div class="palmares-row" style="cursor:default;margin-bottom:.8rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;flex-wrap:wrap;gap:.4rem">
+            <div style="font-family:'Orbitron',monospace;font-weight:700;color:var(--yellow);font-size:.9rem">🏆 ${ct.torneo}</div>
+            <div style="font-size:.75rem;color:var(--muted)">📅 ${ct.dateStr}</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:space-around">
+            ${pBadges}
+          </div>
+        </div>
+      `;
+    });
+
+    tourneyH2HCard = `
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">🏆 Confronto Tornei Diretti (${commonTourneys.length} tornei in comune)</div>
+        ${ctRows}
+      </div>
+    `;
+  } else {
+    tourneyH2HCard = `
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">🏆 Confronto Tornei Diretti</div>
+        <div style="text-align:center;color:var(--muted);padding:1rem;font-size:.82rem">Nessun torneo disputato insieme dai piloti selezionati.</div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = genHtml + tourneyH2HCard + h2hCardHtml;
 
   // ---- Init ELO timeline chart ----
   h2hChartInit(sel);
@@ -1948,11 +2738,44 @@ function rkScheduleNext(){
 // Filtered frames for ranking (set on filter change or init)
 let RK_FILTERED_FRAMES=[];
 
+function getFilteredTimelines(){
+  // Ricalcola le frame della timeline basandosi sul filtro tipo match attivo
+  const filtRaces=getFilteredRaces();
+  const cronLabels={};
+  for(const race of filtRaces){
+    if(race.cron==null||!race.nome_match) continue;
+    cronLabels[race.cron]=race.nome_match;
+  }
+  const allCrons=Object.keys(cronLabels).map(Number).sort((a,b)=>a-b);
+  if(!allCrons.length) return [];
+
+  // Costruisco una lookup map per player: cron -> {elo,anno,torneo} (O(1) invece di O(n) con .find)
+  const playerCronMap={};
+  for(const[pn,player] of Object.entries(PLAYERS)){
+    if(!player.eloTimeline||!player.eloTimeline.length) continue;
+    const m={};
+    for(const pt of player.eloTimeline) m[pt.cron]=pt;
+    playerCronMap[pn]=m;
+  }
+
+  const curElo={};
+  const timeline_frames=allCrons.map(cron=>{
+    let annoC='',torneoC='';
+    for(const[pn,m] of Object.entries(playerCronMap)){
+      const entry=m[cron];
+      if(entry){curElo[pn]=entry.elo;annoC=entry.anno;torneoC=entry.torneo;}
+    }
+    return{cron,label:cronLabels[cron],anno:annoC,torneo:torneoC,elo:{...curElo}};
+  });
+  return timeline_frames;
+}
+
 function rkGetFilteredFrames(){
   const aF=document.getElementById('rk-anno-sel')?.value||'';
   const tF=document.getElementById('rk-torneo-sel')?.value||'';
-  if(!aF&&!tF) return TIMELINE_FRAMES;
-  return TIMELINE_FRAMES.filter(f=>(!aF||f.anno==aF)&&(!tF||f.torneo===tF));
+  const frames=getFilteredTimelines();
+  if(!aF&&!tF) return frames;
+  return frames.filter(f=>(!aF||f.anno==aF)&&(!tF||f.torneo===tF));
 }
 
 function rkApplyFilter(){
@@ -2046,6 +2869,25 @@ function rkSeek(v){
 // ============================================================
 // MAPPE (grouped by trophy)
 // ============================================================
+function getFilteredMapStats(){
+  const mapStatsD={};
+  const filtRaces=getFilteredRaces();
+  for(const race of filtRaces){
+    const m=race.mappa;
+    if(!mapStatsD[m]){
+      const mapInfo=MAP_STATS.find(ms=>ms.name===m);
+      const info=mapInfo||{trofeo:'ALTRO',foto:''};
+      mapStatsD[m]={name:m,times_played:0,results:{},trofeo:info.trofeo,foto:info.foto};
+    }
+    mapStatsD[m].times_played++;
+    for(const[pn,pp]of Object.entries(race.players)){
+      if(!mapStatsD[m].results[pn])mapStatsD[m].results[pn]={gare:0,wins:0,posSum:0};
+      mapStatsD[m].results[pn].gare++;mapStatsD[m].results[pn].posSum+=pp;if(pp===1)mapStatsD[m].results[pn].wins++;
+    }
+  }
+  return Object.values(mapStatsD);
+}
+
 function mapGlobalAvgPos(m){
   // Average position across ALL races on this map, across ALL players
   let posSum=0, count=0;
@@ -2058,7 +2900,8 @@ function mapGlobalAvgPos(m){
 function renderMapHighlights(){
   const el=document.getElementById('mappe-highlights');
   if(!el) return;
-  const validMaps=MAP_STATS.filter(m=>m.trofeo&&m.trofeo!=='ALTRO'&&m.times_played>0);
+  const allMaps=getFilteredMapStats();
+  const validMaps=allMaps.filter(m=>m.trofeo&&m.trofeo!=='ALTRO'&&m.times_played>0);
   if(validMaps.length<2){el.innerHTML='';return;}
   const sorted=[...validMaps].sort((a,b)=>b.times_played-a.times_played);
   const top5=sorted.slice(0,5);
@@ -2103,8 +2946,9 @@ function renderMapHighlights(){
 function renderMaps(){
   renderMapHighlights();
   const el=document.getElementById('mappe-content'); el.innerHTML='';
+  const allMaps=getFilteredMapStats();
   const byTrophy={};
-  for(const m of MAP_STATS){
+  for(const m of allMaps){
     const t=m.trofeo||'ALTRO';
     if(!byTrophy[t])byTrophy[t]=[];
     byTrophy[t].push(m);
@@ -2366,7 +3210,10 @@ function renderTornei(){
   if(byAnno['—']) anniSorted.push('—');
 
   anniSorted.forEach((anno,idx)=>{
-    const tornei=byAnno[anno];
+    const tornei=[...byAnno[anno]].sort((a,b)=>{
+      const ra=TORNEO_LAST_ROW[a.tname]??-1, rb=TORNEO_LAST_ROW[b.tname]??-1;
+      return rb-ra; // ultima apparizione nel foglio più in alto
+    });
     const id='yr-'+anno;
     const isOpen=idx===0; // most recent year open by default
 
